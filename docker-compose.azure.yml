@@ -192,9 +192,9 @@ services:
       - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 12    
+      retries: 5    
     networks:
       - kafka-net
     restart: always
@@ -263,12 +263,16 @@ services:
 
   # Trino (Azure Synapse/HDInsight mimic)
   trino-coordinator:
-    image: trinodb/trino:latest
+    image: trinodb/trino:422  # Specific Trino version known to work with Java 17
     ports:
       - "8088:8088"  # Trino UI
     volumes:
-      - ./trino/etc:/etc/trino  # Mount config files
+      - ./trino/etc:/etc/trino:ro  # Mount config files
+      - ./trino/data:/var/trino/data
       - ./hadoop-conf:/etc/hadoop/conf
+    environment:
+      - JVM_CONFIG=/etc/trino/jvm.config
+    mem_limit: 2g  # Recommended minimum
     depends_on:
       - hive-metastore
       - postgres
@@ -277,7 +281,7 @@ services:
       - kafka-2
     networks:
       - kafka-net
-    restart: always
+    restart: unless-stopped
 
   hive-metastore:
     image: bde2020/hive:2.3.2-postgresql-metastore
@@ -291,6 +295,11 @@ services:
       - DB_PORT=5432
       - DB_NAME=hive_metastore
       - METASTORE_PORT=9083
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9083"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       - postgres
     ports:
