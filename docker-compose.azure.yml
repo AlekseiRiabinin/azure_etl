@@ -1,0 +1,311 @@
+services:
+
+  # Kafka Brokers
+  kafka-1:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka-1
+    ports:
+      - "9092:9092"    # Kafka-1 communication port
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_KRAFT_CLUSTER_ID=d8ce1515-401e-44d4-a444-1b6dba479047
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_HEAP_OPTS=-Xmx2G -Xms2G
+    volumes:
+      - ./server-1.properties:/opt/bitnami/kafka/config/server.properties:ro
+    networks:
+      - kafka-net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2GiB
+        reservations:
+          cpus: '0.25'
+          memory: 1GiB
+
+  kafka-2:
+    image: bitnami/kafka:3.8.0
+    container_name: kafka-2
+    ports:
+      - "9095:9095"    # Kafka-2 communication port
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_KRAFT_CLUSTER_ID=d8ce1515-401e-44d4-a444-1b6dba479047
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_HEAP_OPTS=-Xmx2G -Xms2G
+    volumes:
+      - ./server-2.properties:/opt/bitnami/kafka/config/server.properties:ro
+    networks:
+      - kafka-net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2GiB
+        reservations:
+          cpus: '0.25'
+          memory: 1GiB
+
+  # Spark Master
+  spark-master:
+    image: bitnami/spark:3.5.4
+    container_name: spark-master
+    hostname: spark-master
+    ports:
+      - "7077:7077"    # Spark communication port
+      - "8090:8080"    # Spark Master Web UI (container 8080 → host 8090)
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_LOG_LEVEL=INFO
+    networks:
+      - kafka-net
+    restart: always
+
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.5.4
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_WEBUI_PORT=8081    # Worker UI port
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_LOG_LEVEL=INFO
+    depends_on:
+      - spark-master
+    networks:
+      - kafka-net
+    restart: always
+
+  # Airflow webserver
+  airflow-webserver:
+    build:
+      context: ../apps/airflow-app
+      dockerfile: Dockerfile
+    image: alexflames77/custom-airflow:latest
+    container_name: airflow-webserver
+    command: webserver
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+      - AIRFLOW__CORE__FERNET_KEY=PakKUDc_578hbrABpAhOs0PMn7RnDBfkgRO03e_tugA=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+      - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
+      - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
+      - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./hadoop-airflow-conf:/opt/hadoop/etc/hadoop      
+    ports:
+      - "8083:8080"
+    networks:
+      - kafka-net
+    restart: always
+
+  # Airflow scheduler
+  airflow-scheduler:
+    image: alexflames77/custom-airflow:latest
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+      - AIRFLOW__CORE__FERNET_KEY=PakKUDc_578hbrABpAhOs0PMn7RnDBfkgRO03e_tugA=
+      - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
+      - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
+      - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./hadoop-airflow-conf:/opt/hadoop/etc/hadoop
+    networks:
+      - kafka-net
+    restart: always
+
+  # Airflow init
+  airflow-init:
+    image: alexflames77/custom-airflow:latest
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command: -c "airflow db init && airflow users create \
+      --username admin \
+      --firstname Admin \
+      --lastname User \
+      --role Admin \
+      --email admin@example.com \
+      --password admin"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres:5432/postgres
+      - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
+      - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
+      - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    networks:
+      - kafka-net
+
+  # PostgreSQL (Azure SQL alternative)
+  postgres:
+    image: postgres:15.2
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-azure-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12    
+    networks:
+      - kafka-net
+    restart: always
+
+  # MinIO (Azure Blob Storage alternative)
+  minio:
+    image: minio/minio:RELEASE.2024-04-18T19-09-19Z
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_ENDPOINT_URL=http://minio:9000
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"    # Console
+      - "9001:9001"    # API
+    networks:
+      - kafka-net
+    restart: always
+
+  # JupyterLab with PySpark (Databricks alternative)
+  jupyterlab:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: jupyterlab
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    networks:
+      - kafka-net
+    restart: always
+
+  # Kafdrop (Kafka UI)
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.30.0
+    container_name: kafdrop
+    ports:
+      - "9002:9000"
+    environment:
+      - KAFKA_BROKERCONNECT=kafka-1:9092,kafka-2:9095
+    depends_on:
+      - kafka-1
+      - kafka-2
+    networks:
+      - kafka-net
+    restart: always
+
+  # DuckDB (Synapse Serverless mimic)
+  duckdb:
+    image: python:3.9-slim
+    container_name: duckdb
+    volumes:
+      - ./duckdb:/duckdb    # Local folder for DuckDB files
+      - ./data:/data        # For input Parquet/CSV files
+    working_dir: /duckdb
+    command: bash -c "pip install duckdb pandas pyarrow && tail -f /dev/null"
+    networks:
+      - kafka-net
+    restart: always
+
+  # Trino (Azure Synapse/HDInsight mimic)
+  trino-coordinator:
+    image: trinodb/trino:latest
+    ports:
+      - "8088:8088"  # Trino UI
+    volumes:
+      - ./trino/etc:/etc/trino  # Mount config files
+    depends_on:
+      - postgres
+      - minio
+      - kafka-1
+      - kafka-2
+    networks:
+      - kafka-net
+    restart: always
+
+networks:
+  kafka-net:
+    driver: bridge
+
+volumes:
+  postgres-azure-data:
+    name: postgres-azure-data
+  minio-data:
+    name: minio-data
+
+# docker compose -f docker-compose.etl.yml up airflow-init
+
+# Initialize the Airflow DB:
+# docker exec -it airflow-webserver airflow db init
+
+# Create a user:
+# docker exec -it airflow-webserver airflow users create \
+#   --username admin \
+#   --password admin \
+#   --firstname Admin \
+#   --lastname User \
+#   --role Admin \
+#   --email admin@example.com
+
+# In DAG Python code:
+# Use PostgresHook with a new connection ID like etl_postgres
+
+# In Airflow UI:
+# Add a Connection named etl_postgres
+# Connection type: Postgres
+# Host: etl-db
+# Port: 5432
+# User: etluser
+# Password: etlpass
+# Schema: etl (or whatever you named the DB)
