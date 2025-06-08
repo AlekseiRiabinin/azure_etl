@@ -61,6 +61,7 @@ services:
       - SPARK_MODE=master
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_HADOOP_HIVE_METASTORE_URIS=thrift://hive-metastore:9083
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -77,6 +78,7 @@ services:
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_HADOOP_HIVE_METASTORE_URIS=thrift://hive-metastore:9083
       - SPARK_WORKER_MEMORY=1G
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_WEBUI_PORT=8081    # Worker UI port
@@ -114,7 +116,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
-      - ./hadoop-airflow-conf:/opt/hadoop/etc/hadoop      
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop      
     ports:
       - "8083:8080"
     networks:
@@ -141,7 +143,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
-      - ./hadoop-airflow-conf:/opt/hadoop/etc/hadoop
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop
     networks:
       - kafka-net
     restart: always
@@ -187,6 +189,7 @@ services:
       - "5434:5432"
     volumes:
       - postgres-azure-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
@@ -265,11 +268,33 @@ services:
       - "8088:8088"  # Trino UI
     volumes:
       - ./trino/etc:/etc/trino  # Mount config files
+      - ./hadoop-conf:/etc/hadoop/conf
     depends_on:
+      - hive-metastore
       - postgres
       - minio
       - kafka-1
       - kafka-2
+    networks:
+      - kafka-net
+    restart: always
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    environment:
+      - SERVICE_NAME=hivemetastore
+      - DB_DRIVER=postgresql
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hive_metastore
+      - METASTORE_PORT=9083
+    depends_on:
+      - postgres
+    ports:
+      - "9096:9083"
     networks:
       - kafka-net
     restart: always

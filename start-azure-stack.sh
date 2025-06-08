@@ -32,7 +32,25 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' postgres 2>/dev/null || 
   fi
 done
 
-# Step 3: Initialize Airflow database (runs once with cleanup)
+# Step 3: Create 'default' bucket in MinIO
+echo "📦 Ensuring 'default' bucket exists in MinIO..."
+
+set +e  # Temporarily disable exit-on-error
+docker run --rm --network azure_etl_kafka-net minio/mc mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1
+BUCKET_EXISTS=$(docker run --rm --network azure_etl_kafka-net minio/mc mc ls local 2>/dev/null | grep -c 'default')
+set -e  # Re-enable strict mode
+
+if [ "$BUCKET_EXISTS" -eq 0 ]; then
+  echo "🪣 Creating MinIO bucket: 'default'"
+  docker run --rm --network azure_etl_kafka-net minio/mc \
+    mc alias set local http://minio:9000 minioadmin minioadmin && \
+    docker run --rm --network azure_etl_kafka-net minio/mc \
+      mc mb local/default
+else
+  echo "✅ MinIO bucket 'default' already exists."
+fi
+
+# Step 4: Initialize Airflow database (runs once with cleanup)
 echo "🔍 Checking if Airflow DB is already initialized..."
 
 INIT_CHECK=$(docker exec postgres psql -U postgres -d postgres -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='dag';")
@@ -45,11 +63,11 @@ else
   docker compose -f $COMPOSE_FILE logs -f airflow-init
 fi
 
-# Step 4: Start Airflow webserver and scheduler
+# Step 5: Start Airflow webserver and scheduler
 echo "🚀 Starting Airflow services..."
 docker compose -f $COMPOSE_FILE up -d airflow-webserver airflow-scheduler
 
-# Step 5: Wait until Airflow Webserver is responsive
+# Step 6: Wait until Airflow Webserver is responsive
 echo "⏳ Waiting for Airflow webserver to respond..."
 MAX_WAIT=120
 WAITED=0
@@ -64,7 +82,7 @@ until docker exec airflow-webserver curl -s localhost:8080 > /dev/null 2>&1; do
   fi
 done
 
-# Step 6: Verify admin user creation (in case init step skipped it)
+# Step 7: Verify admin user creation (in case init step skipped it)
 echo "👤 Verifying Airflow admin user..."
 if ! docker exec airflow-webserver airflow users list | grep -q admin; then
   echo "👤 Creating Airflow admin user..."
@@ -79,11 +97,11 @@ else
   echo "✅ Admin user already exists."
 fi
 
-# Step 7: Start new services (Trino + DuckDB)
+# Step 8: Start Trino and DuckDB
 echo "🚀 Starting Trino and DuckDB services..."
 docker compose -f $COMPOSE_FILE up -d duckdb trino-coordinator
 
-# Step 8: Output access info
+# Step 9: Output access info
 echo -e "\n✅ All services are up and running!"
 echo -e "➡️  Access Airflow UI:     http://localhost:8083"
 echo -e "➡️  Access Kafka UI:       http://localhost:9002"
