@@ -1,1 +1,1 @@
-# azure_etl
+# NZ SmartEnergy Data Platform

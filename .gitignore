@@ -43,3 +43,5 @@ src_managed/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+venv/
