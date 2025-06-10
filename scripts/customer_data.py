@@ -9,7 +9,7 @@ regions = {
 
 tariff_plans = ["PEAK", "OFFPEAK", "TIME_OF_USE"]
 
-def generate_customer_data(num_customers=50):
+def generate_customer_data(num_customers=500):
     sql = "INSERT INTO dim_customer VALUES\n"
     values = []
     

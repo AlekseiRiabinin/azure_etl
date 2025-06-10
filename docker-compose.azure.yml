@@ -14,7 +14,9 @@ services:
     volumes:
       - ./server-1.properties:/opt/bitnami/kafka/config/server.properties:ro
     networks:
-      - kafka-net
+      kafka-net:
+        aliases:
+          - kafka-broker
     restart: always
     deploy:
       resources:
@@ -38,7 +40,9 @@ services:
     volumes:
       - ./server-2.properties:/opt/bitnami/kafka/config/server.properties:ro
     networks:
-      - kafka-net
+      kafka-net:
+        aliases:
+          - kafka-broker
     restart: always
     deploy:
       resources:

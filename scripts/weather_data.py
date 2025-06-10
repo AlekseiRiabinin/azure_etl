@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 regions = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin"]
 
-def generate_weather_data(days=30):
+def generate_weather_data(days=90):
     start_date = date.today() - timedelta(days=days)
     dates = [start_date + timedelta(days=i) for i in range(days)]
     

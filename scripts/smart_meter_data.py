@@ -7,7 +7,7 @@ import time
 regions = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin"]
 tariff_plans = ["PEAK", "OFFPEAK", "TIME_OF_USE"]
 
-def generate_meter_data(num_records=100):
+def generate_meter_data(num_records=1000):
     data = []
     for i in range(num_records):
         record = {
@@ -23,7 +23,7 @@ def generate_meter_data(num_records=100):
 
 if __name__ == "__main__":
     # Generate 100 records and save to JSON file
-    meter_data = generate_meter_data(100)
+    meter_data = generate_meter_data(1000)
     with open("data/smart_meter_data.json", "w") as f:
         json.dump(meter_data, f, indent=2)
     
