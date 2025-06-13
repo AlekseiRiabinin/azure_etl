@@ -65,7 +65,12 @@ docker exec kafka-1 bash -c '
 '
 log "✅ Kafka topics ready"
 
-# Step 3: Wait for postgres to be healthy
+# Step 3: Start Kafka Producer (after topics exist)
+log "🚀 Starting Kafka Producer..."
+docker compose -f $COMPOSE_FILE up -d kafka-producer
+log "✅ Kafka Producer started (check logs with: docker logs -f kafka_producer)"
+
+# Step 4: Wait for postgres to be healthy
 log "⏳ Waiting for postgres to be ready..."
 MAX_WAIT=120
 WAITED=0
@@ -81,7 +86,7 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' postgres 2>/dev/null || 
   fi
 done
 
-# Step 4: Create 'default' bucket in MinIO
+# Step 5: Create 'default' bucket in MinIO
 log "📦 Ensuring 'default' bucket exists in MinIO..."
 
 set +e  # Temporarily disable exit-on-error
@@ -99,7 +104,7 @@ else
   log "✅ MinIO bucket 'default' already exists."
 fi
 
-# Step 5: Initialize Airflow database (runs once with cleanup)
+# Step 6: Initialize Airflow database (runs once with cleanup)
 log "🔍 Checking if Airflow DB is already initialized..."
 
 INIT_CHECK=$(docker exec postgres psql -U postgres -d postgres -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='dag';")
@@ -112,11 +117,11 @@ else
   docker compose -f $COMPOSE_FILE logs -f airflow-init
 fi
 
-# Step 6: Start Airflow webserver and scheduler
+# Step 7: Start Airflow webserver and scheduler
 log "🚀 Starting Airflow services..."
 docker compose -f $COMPOSE_FILE up -d airflow-webserver airflow-scheduler
 
-# Step 7: Wait until Airflow Webserver is responsive
+# Step 8: Wait until Airflow Webserver is responsive
 log "⏳ Waiting for Airflow webserver to respond..."
 MAX_WAIT=120
 WAITED=0
@@ -131,7 +136,7 @@ until docker exec airflow-webserver curl -s localhost:8080 > /dev/null 2>&1; do
   fi
 done
 
-# Step 8: Verify admin user creation (in case init step skipped it)
+# Step 9: Verify admin user creation (in case init step skipped it)
 log "👤 Verifying Airflow admin user..."
 if ! docker exec airflow-webserver airflow users list | grep -q admin; then
   log "👤 Creating Airflow admin user..."
@@ -146,17 +151,18 @@ else
   log "✅ Admin user already exists."
 fi
 
-# Step 9: Start Trino and DuckDB
+# Step 10: Start Trino and DuckDB
 log "🚀 Starting Trino and DuckDB services..."
 docker compose -f $COMPOSE_FILE up -d duckdb trino-coordinator
 
-# Step 10: Output access info
+# Step 11: Output access info
 log "✅ All services are up and running!"
 log "➡️  Access Airflow UI:     http://localhost:8083"
 log "➡️  Access Kafka UI:       http://localhost:9002"
 log "➡️  Access MinIO Console:  http://localhost:9001"
 log "➡️  Access JupyterLab:     http://localhost:8888"
 log "➡️  Access Trino UI:       http://localhost:8088"
+log "📌 Kafka Producer Logs:    docker logs -f kafka_producer"
 
 log "📌 Airflow Postgres Connection (if needed):"
 log "  - Conn ID: azure_postgres"

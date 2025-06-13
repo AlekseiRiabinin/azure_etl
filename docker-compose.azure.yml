@@ -14,9 +14,7 @@ services:
     volumes:
       - ./server-1.properties:/opt/bitnami/kafka/config/server.properties:ro
     networks:
-      kafka-net:
-        aliases:
-          - kafka-broker
+      - kafka-net
     restart: always
     deploy:
       resources:
@@ -40,9 +38,7 @@ services:
     volumes:
       - ./server-2.properties:/opt/bitnami/kafka/config/server.properties:ro
     networks:
-      kafka-net:
-        aliases:
-          - kafka-broker
+      - kafka-net
     restart: always
     deploy:
       resources:
@@ -52,6 +48,22 @@ services:
         reservations:
           cpus: '0.25'
           memory: 1GiB
+  
+  # Kafka Producer (smart meter data)
+  kafka-producer:
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    image: alexflames77/kafka_producer:latest
+    container_name: kafka-producer
+    depends_on:
+      - kafka-1
+      - kafka-2
+    networks:
+      - kafka-net
+    volumes:
+      - ./data/smart_meter_data.json:/app/data/smart_meter_data.json
+    restart: unless-stopped
 
   # Spark Master
   spark-master:
