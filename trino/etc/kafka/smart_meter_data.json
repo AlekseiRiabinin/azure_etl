@@ -1,0 +1,19 @@
+{
+  "tableName": "smart_meter_data",
+  "schemaName": "kafka",
+  "topicName": "smart_meter_data",
+  "key": {
+    "dataFormat": "json",
+    "fields": [
+      {"name": "meter_id", "type": "VARCHAR", "mapping": "meter_id"},
+      {"name": "timestamp", "type": "TIMESTAMP", "mapping": "timestamp"}
+    ]
+  },
+  "message": {
+    "dataFormat": "json",
+    "fields": [
+      {"name": "consumption", "type": "DOUBLE"},
+      {"name": "status", "type": "VARCHAR"}
+    ]
+  }
+}

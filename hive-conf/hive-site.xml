@@ -1,0 +1,134 @@
+<configuration>
+  <!-- ================================== -->
+  <!-- PostgreSQL Metastore Configuration -->
+  <!-- ================================== -->
+  
+  <!-- JDBC connection URL for PostgreSQL metastore -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://postgres:5432/hive_metastore</value>
+    <description>JDBC connect string for a JDBC metastore</description>
+  </property>
+
+  <!-- PostgreSQL JDBC driver class -->
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+    <description>Driver class name for a JDBC metastore</description>
+  </property>
+
+  <!-- Database username -->
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>postgres</value>
+    <description>Username to use against metastore database</description>
+  </property>
+
+  <!-- Database password -->
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>postgres</value>
+    <description>Password to use against metastore database</description>
+  </property>
+
+  <!-- ============================= -->
+  <!-- Schema Management Settings -->
+  <!-- ============================= -->
+  
+  <!-- Disable schema verification -->
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+    <description>
+      Enforce metastore schema version consistency.
+      False is recommended for development environments.
+    </description>
+  </property>
+
+  <!-- Allow automatic schema creation -->
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>true</value>
+    <description>
+      Auto-create necessary schema on a startup if doesn't exist.
+    </description>
+  </property>
+
+  <!-- Allow schema modifications -->
+  <property>
+    <name>datanucleus.fixedDatastore</name>
+    <value>false</value>
+    <description>
+      If true, prevents schema modifications after initial creation.
+    </description>
+  </property>
+
+  <!-- ============================= -->
+  <!-- Storage Locations -->
+  <!-- ============================= -->
+  
+  <!-- Default warehouse directory (using MinIO/S3) -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>s3a://default/warehouse/</value>
+    <description>
+      Location of default database for the warehouse.
+      Using S3A URI for MinIO storage.
+    </description>
+  </property>
+
+  <!-- Required networking config -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://0.0.0.0:9083</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.port</name>
+    <value>9083</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+  <!-- Temporary/scratch directory (using MinIO/S3) -->
+  <property>
+    <name>hive.exec.scratchdir</name>
+    <value>s3a://default/scratch/</value>
+    <description>
+      HDFS scratch space for temporary files (queries, etc).
+      Should be globally writable.
+    </description>
+  </property>
+
+  <!-- ============================= -->
+  <!-- Additional Recommended Settings -->
+  <!-- ============================= -->
+  
+  <!-- Enable direct SQL queries for metadata -->
+  <property>
+    <name>hive.metastore.try.direct.sql</name>
+    <value>true</value>
+    <description>
+      Use direct SQL queries instead of DataNucleus for metadata.
+      Improves performance with RDBMS metastores.
+    </description>
+  </property>
+
+  <!-- Transaction management -->
+  <property>
+    <name>hive.txn.manager</name>
+    <value>org.apache.hadoop.hive.ql.lockmgr.DbTxnManager</value>
+    <description>
+      Set to DbTxnManager for ACID transaction support.
+    </description>
+  </property>
+
+  <property>
+    <name>datanucleus.autoStartMechanismMode</name>
+    <value>checked</value>
+  </property>
+
+</configuration>

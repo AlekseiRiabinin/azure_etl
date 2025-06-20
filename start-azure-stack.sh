@@ -18,7 +18,8 @@ docker compose -f $COMPOSE_FILE up -d \
   spark-worker \
   minio \
   jupyterlab \
-  kafdrop
+  kafdrop \
+  hive-metastore
 
 # Step 2: Check Kafka brokers and create topics
 log "⏳ Waiting for Kafka brokers to be ready..."
@@ -86,7 +87,31 @@ until [ "$(docker inspect -f '{{.State.Health.Status}}' postgres 2>/dev/null || 
   fi
 done
 
-# Step 5: Create 'default' bucket in MinIO
+# Step 5: Initialize Hive Metastore
+HIVE_DB_NAME=hive_metastore
+HIVE_CONTAINER=hive-metastore
+
+log "🧪 Setting up Hive Metastore..."
+
+# First ensure the database exists
+DB_EXISTS=$(docker exec postgres psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$HIVE_DB_NAME';")
+if [ "$DB_EXISTS" != "1" ]; then
+  log "🛠️ Creating database $HIVE_DB_NAME..."
+  docker exec postgres psql -U postgres -d postgres -c "CREATE DATABASE $HIVE_DB_NAME;"
+  log "✅ Database $HIVE_DB_NAME created."
+fi
+
+# Verify schema (entrypoint already initialized it)
+log "🔍 Verifying Hive Metastore schema..."
+if docker exec $HIVE_CONTAINER schematool -dbType postgres -info; then
+  log "✅ Hive Metastore schema verified successfully"
+else
+  log "❌ Hive Metastore schema verification failed"
+  docker logs $HIVE_CONTAINER
+  exit 1
+fi
+
+# Step 6: Create 'default' bucket in MinIO
 log "📦 Ensuring 'default' bucket exists in MinIO..."
 
 set +e  # Temporarily disable exit-on-error
@@ -95,7 +120,7 @@ BUCKET_EXISTS=$(docker run --rm --network azure_etl_kafka-net minio/mc mc ls loc
 set -e  # Re-enable strict mode
 
 if [ "$BUCKET_EXISTS" -eq 0 ]; then
-  log "🪣 Creating MinIO bucket: 'default'"
+  log "🪣  Creating MinIO bucket: 'default'"
   docker run --rm --network azure_etl_kafka-net minio/mc \
     mc alias set local http://minio:9000 minioadmin minioadmin && \
     docker run --rm --network azure_etl_kafka-net minio/mc \
@@ -104,7 +129,7 @@ else
   log "✅ MinIO bucket 'default' already exists."
 fi
 
-# Step 6: Initialize Airflow database (runs once with cleanup)
+# Step 7: Initialize Airflow database (runs once with cleanup)
 log "🔍 Checking if Airflow DB is already initialized..."
 
 INIT_CHECK=$(docker exec postgres psql -U postgres -d postgres -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='dag';")
@@ -117,11 +142,11 @@ else
   docker compose -f $COMPOSE_FILE logs -f airflow-init
 fi
 
-# Step 7: Start Airflow webserver and scheduler
+# Step 8: Start Airflow webserver and scheduler
 log "🚀 Starting Airflow services..."
 docker compose -f $COMPOSE_FILE up -d airflow-webserver airflow-scheduler
 
-# Step 8: Wait until Airflow Webserver is responsive
+# Step 9: Wait until Airflow Webserver is responsive
 log "⏳ Waiting for Airflow webserver to respond..."
 MAX_WAIT=120
 WAITED=0
@@ -136,7 +161,7 @@ until docker exec airflow-webserver curl -s localhost:8080 > /dev/null 2>&1; do
   fi
 done
 
-# Step 9: Verify admin user creation (in case init step skipped it)
+# Step 10: Verify admin user creation (in case init step skipped it)
 log "👤 Verifying Airflow admin user..."
 if ! docker exec airflow-webserver airflow users list | grep -q admin; then
   log "👤 Creating Airflow admin user..."
@@ -151,17 +176,54 @@ else
   log "✅ Admin user already exists."
 fi
 
-# Step 10: Start Trino and DuckDB
+# Step 11: Start Trino and DuckDB
 log "🚀 Starting Trino and DuckDB services..."
-docker compose -f $COMPOSE_FILE up -d duckdb trino-coordinator
 
-# Step 11: Output access info
+# More robust port checking with retries
+PORT_CHECK_RETRIES=3
+PORT_CHECK_DELAY=2
+PORT_FREE=true
+
+for ((i=1; i<=PORT_CHECK_RETRIES; i++)); do
+    if ss -tuln | grep -q ':8090\b'; then
+        log "⚠️ Port 8090 appears in use (attempt $i/$PORT_CHECK_RETRIES)"
+        PORT_FREE=false
+        sleep $PORT_CHECK_DELAY
+    else
+        PORT_FREE=true
+        break
+    fi
+done
+
+if ! $PORT_FREE; then
+    log "❌ Port 8090 is in use according to multiple checks. Details:"
+    ss -tulnp | grep ':8090\b' || true
+    docker ps --format '{{.ID}}\t{{.Names}}\t{{.Ports}}' | grep '8090' || true
+    log "Trying to identify and kill the conflicting process..."
+    sudo lsof -i :8090 || true
+    sudo kill -9 $(sudo lsof -t -i :8090) 2>/dev/null || true
+    sleep 2
+fi
+
+# Final verification
+if ss -tuln | grep -q ':8090\b'; then
+    log "❌ Could not free port 8090 after cleanup attempts. Aborting."
+    exit 1
+fi
+
+log "✅ Port 8090 confirmed available after checks"
+
+# Start DuckDB and Trino
+docker compose -f "$COMPOSE_FILE" up -d duckdb trino-coordinator
+
+# Step 12: Output access info
 log "✅ All services are up and running!"
 log "➡️  Access Airflow UI:     http://localhost:8083"
 log "➡️  Access Kafka UI:       http://localhost:9002"
 log "➡️  Access MinIO Console:  http://localhost:9001"
 log "➡️  Access JupyterLab:     http://localhost:8888"
-log "➡️  Access Trino UI:       http://localhost:8088"
+log "➡️  Access Trino UI:       http://localhost:8090"
+log "➡️  Access Spark UI:       http://localhost:8091"
 log "📌 Kafka Producer Logs:    docker logs -f kafka_producer"
 
 log "📌 Airflow Postgres Connection (if needed):"
