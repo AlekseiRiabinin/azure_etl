@@ -64,6 +64,14 @@ services:
     volumes:
       - ./data/smart_meter_data.json:/app/data/smart_meter_data.json
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512MiB
+        reservations:
+          cpus: '0.25'
+          memory: 256MiB
 
   # Spark Master
   spark-master:
@@ -86,6 +94,14 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
+        reservations:
+          cpus: '0.5'
+          memory: 1GiB
 
   # Spark Worker
   spark-worker:
@@ -106,6 +122,14 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 3GiB
+        reservations:
+          cpus: '0.75'
+          memory: 1.5GiB
 
   # Airflow webserver
   airflow-webserver:
@@ -138,6 +162,11 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
 
   # Airflow scheduler
   airflow-scheduler:
@@ -163,6 +192,11 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
 
   # Airflow init
   airflow-init:
@@ -213,6 +247,14 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
+        reservations:
+          cpus: '0.5'
+          memory: 1GiB
 
   # JupyterLab with PySpark (Databricks alternative)
   jupyterlab:
@@ -221,12 +263,18 @@ services:
     ports:
       - "8888:8888"
     environment:
+      - JUPYTER_TOKEN=admin
       - JUPYTER_ENABLE_LAB=yes
     volumes:
       - ./notebooks:/home/jovyan/work
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4GiB
 
   # Kafdrop (Kafka UI)
   kafdrop:
@@ -242,6 +290,14 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 1GiB
+        reservations:
+          cpus: '0.1'
+          memory: 512MiB
 
   # DuckDB (Synapse Serverless mimic)
   duckdb:
@@ -255,6 +311,14 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2GiB
+        reservations:
+          cpus: '0.5'
+          memory: 1GiB
 
   # Trino (Azure Synapse/HDInsight mimic)
   trino-coordinator:
@@ -294,15 +358,17 @@ services:
         condition: service_started
       kafka-2:
         condition: service_started
-
     networks:
       - kafka-net
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 4G
+          cpus: '3.0'
+          memory: 8GiB
+        reservations:
+          cpus: '1.5'
+          memory: 4GiB
 
   # Metastore for Trino
   hive-metastore:
@@ -347,6 +413,14 @@ services:
     networks:
       - kafka-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4GiB
+        reservations:
+          cpus: '0.75'
+          memory: 2GiB
 
   # MinIO (Azure Blob Storage alternative)
   minio:
@@ -367,6 +441,11 @@ services:
     networks:
       - kafka-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1GiB
 
 networks:
   kafka-net:
