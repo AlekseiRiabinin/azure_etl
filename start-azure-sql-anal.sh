@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ./start-azure-sql-anal.sh
 # Start after core services
 
 # SQL Analytics stack

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ./start-azure-orchest.sh
 # Start after core services
 
 # Orchestration (Airflow)

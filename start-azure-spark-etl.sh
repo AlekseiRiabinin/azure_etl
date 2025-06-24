@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ./start-azure-spark-etl.sh
 # Start after core services
 
 # Spark ETL stack

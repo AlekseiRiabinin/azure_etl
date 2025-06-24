@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ./start-azure-stream.sh
 # Start after core services
 
 # Streaming tools

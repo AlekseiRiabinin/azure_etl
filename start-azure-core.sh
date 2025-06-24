@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# ./start-azure-core.sh
 # Minimal services required for all workflows
 
 # kafka-1
