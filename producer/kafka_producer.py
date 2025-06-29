@@ -19,14 +19,14 @@ logging.basicConfig(
 logger = logging.getLogger('kafka-producer')
 logger.setLevel(logging.DEBUG)
 
-def validate_environment():
-    """Check required files and connections"""
+def validate_environment() -> None:
+    """Check required files and connections."""
     if not os.path.exists(DATA_PATH):
         logger.error(f"Data file not found at {DATA_PATH}. Verify volume mount!")
         raise FileNotFoundError(f"Missing data file: {DATA_PATH}")
 
-def create_producer():
-    """Create and configure Kafka producer"""
+def create_producer() -> None:
+    """Create and configure Kafka producer."""
     return KafkaProducer(
         bootstrap_servers=BOOTSTRAP_SERVERS,
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
@@ -38,7 +38,8 @@ def create_producer():
         metadata_max_age_ms=30000
     )
 
-def produce_to_kafka():
+def produce_to_kafka() -> None:
+    """Send data to Kafka-brokers."""
     validate_environment()
     
     try:

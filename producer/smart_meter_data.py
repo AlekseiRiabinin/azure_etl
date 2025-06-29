@@ -1,13 +1,11 @@
-# scripts/smart_meter_data.py
 import json
 import random
 from datetime import datetime, timedelta
-import time
+from typing import List, Dict
 
 regions = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin"]
-tariff_plans = ["PEAK", "OFFPEAK", "TIME_OF_USE"]
 
-def generate_meter_data(num_records=1000):
+def generate_meter_data(num_records: int = 1000) -> List[Dict[str, object]]:
     data = []
     for i in range(num_records):
         record = {
@@ -22,7 +20,6 @@ def generate_meter_data(num_records=1000):
     return data
 
 if __name__ == "__main__":
-    # Generate 100 records and save to JSON file
     meter_data = generate_meter_data(1000)
     with open("data/smart_meter_data.json", "w") as f:
         json.dump(meter_data, f, indent=2)

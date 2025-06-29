@@ -9,7 +9,7 @@ def detect_anomalies(df: DataFrame) -> DataFrame:
         when(col("voltage") > 250, lit(True)).otherwise(lit(False))
     )
 
-def process_kafka_stream(spark: SparkSession, bootstrap_servers: str, topic: str) -> DataFrame:
+def process_kafka_stream(spark: SparkSession, bootstrap_servers: str, topic: str):
     """Read from Kafka and parse JSON payload."""
     return spark.readStream \
         .format("kafka") \
@@ -20,6 +20,7 @@ def process_kafka_stream(spark: SparkSession, bootstrap_servers: str, topic: str
         .selectExpr("json_tuple(json, 'meter_id', 'voltage', 'timestamp') as (meter_id, voltage, timestamp)")
 
 def write_to_minio(df: DataFrame, minio_path: str):
+    """Write (append) data to S3/MinIO."""
     df.writeStream \
         .format("delta") \
         .outputMode("append") \
