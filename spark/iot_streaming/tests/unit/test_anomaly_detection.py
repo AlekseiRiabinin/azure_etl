@@ -1,7 +1,7 @@
 import pytest
 from pyspark.sql import SparkSession, Row, DataFrame
 from pyspark.sql.types import *
-from src.spark_etl.stream_processor import detect_anomalies
+from spark.iot_streaming.src.spark_etl.stream_processor import detect_anomalies
 
 @pytest.mark.parametrize("voltage,expected", [
     (240, False),  # Normal
@@ -46,10 +46,10 @@ def test_detect_anomalies_preserves_normal_records(batch_test_data: DataFrame) -
     assert normal_ids == {"DUNEDIN_222", "AUCKLAND_218"}
     assert all(row["voltage"] <= 250 for row in normals)
 
-def test_empty_dataframe(spark: SparkSession, batch_test_data: DataFrame) -> None:
+def test_empty_dataframe(spark_session: SparkSession, batch_test_data: DataFrame) -> None:
     """Verify function handles empty input gracefully."""
     # Get schema from existing fixture to ensure consistency
-    empty_df = spark.createDataFrame([], schema=batch_test_data.schema)
+    empty_df = spark_session.createDataFrame([], schema=batch_test_data.schema)
     result = detect_anomalies(empty_df)
     
     assert result.count() == 0, "Empty input should return empty result"
