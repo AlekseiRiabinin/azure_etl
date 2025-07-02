@@ -5,9 +5,6 @@ from datetime import datetime
 import json
 from typing import List
 
-# --------------------------
-# Streaming Helpers (inline)
-# --------------------------
 def _create_kafka_test_schema() -> StructType:
     """Private helper for Kafka stream schema."""
     return StructType([
@@ -40,11 +37,8 @@ def _create_mock_kafka_stream(
     ) for i, msg in enumerate(json_messages)]
     return spark.createDataFrame(rows, schema)
 
-# --------------------------
-# Public Fixtures
-# --------------------------
 @pytest.fixture
-def test_stream(spark: SparkSession) -> DataFrame:
+def kafka_test_stream(spark: SparkSession) -> DataFrame:
     """Main streaming test fixture."""
     json_messages: List[str] = [
         (
@@ -63,6 +57,6 @@ def test_stream(spark: SparkSession) -> DataFrame:
     return _create_mock_kafka_stream(spark, json_messages)
 
 @pytest.fixture 
-def empty_stream(spark: SparkSession) -> DataFrame:
+def empty_kafka_test_stream(spark: SparkSession) -> DataFrame:
     """Edge case: Empty stream."""
     return _create_mock_kafka_stream(spark, [])

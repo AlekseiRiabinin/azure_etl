@@ -46,9 +46,9 @@ def batch_test_data(spark: SparkSession) -> DataFrame:
     )
 
 @pytest.fixture
-def boundary_test_data(spark_session: SparkSession) -> DataFrame:
+def boundary_test_data(spark: SparkSession) -> DataFrame:
     """Test data with boundary values around the anomaly threshold."""
-    return spark_session.createDataFrame([
+    return spark.createDataFrame([
         Row(meter_id="BOUNDARY_249", voltage=249, kwh_usage=2.5),  # Below
         Row(meter_id="BOUNDARY_250", voltage=250, kwh_usage=2.5),  # At threshold
         Row(meter_id="BOUNDARY_251", voltage=251, kwh_usage=2.5)   # Above

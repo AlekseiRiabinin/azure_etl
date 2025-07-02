@@ -38,13 +38,13 @@ def test_detect_anomalies_preserves_normal_records(batch_test_data: DataFrame) -
     result = detect_anomalies(batch_test_data)
     
     # Get all normal records
-    normals = result.filter("is_anomaly = False").collect()
-    normal_ids = {row["meter_id"] for row in normals}
+    records = result.filter("is_anomaly = False").collect()
+    record_ids = {row["meter_id"] for row in records}
     
     # Verify DUNEDIN_222 and AUCKLAND_218 are normal
-    assert len(normals) == 2
-    assert normal_ids == {"DUNEDIN_222", "AUCKLAND_218"}
-    assert all(row["voltage"] <= 250 for row in normals)
+    assert len(records) == 2
+    assert record_ids == {"DUNEDIN_222", "AUCKLAND_218"}
+    assert all(row["voltage"] <= 250 for row in records)
 
 def test_empty_dataframe(spark_session: SparkSession, batch_test_data: DataFrame) -> None:
     """Verify function handles empty input gracefully."""

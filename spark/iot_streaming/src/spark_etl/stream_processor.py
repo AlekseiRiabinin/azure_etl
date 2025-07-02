@@ -1,6 +1,5 @@
-from pyspark.sql import DataFrame
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, when, lit
-from pyspark.sql import SparkSession
 
 def detect_anomalies(df: DataFrame) -> DataFrame:
     """Flag voltage > 250V as anomalies."""
