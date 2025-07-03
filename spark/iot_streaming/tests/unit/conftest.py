@@ -7,15 +7,13 @@ from typing import Generator
 @pytest.fixture(scope="session")
 def spark_session() -> Generator[SparkSession, None, None]:
     """Session-scoped Spark fixture with test-optimized config."""
-    spark = (
-        SparkSession.builder
-            .master("local[1]")
-            .config("spark.sql.shuffle.partitions", "1")
-            .config("spark.driver.host", "localhost")
-            .config("spark.sql.streaming.schemaInference", "true")
-            .config("spark.ui.enabled", "false")
-            .getOrCreate()
-    )
+    spark = (SparkSession.builder
+        .master("local[1]")
+        .config("spark.sql.shuffle.partitions", "1")
+        .config("spark.driver.host", "localhost")
+        .config("spark.sql.streaming.schemaInference", "true")
+        .config("spark.ui.enabled", "false")
+        .getOrCreate())
     yield spark
     spark.stop()
 
@@ -41,9 +39,7 @@ def batch_test_data(spark: SparkSession) -> DataFrame:
     ], schema=schema)
     
     # Convert to timestamp
-    return df.withColumn("timestamp", 
-        to_timestamp(col("timestamp"), "yyyy-MM-dd'T'HH:mm:ss")
-    )
+    return df.withColumn("timestamp", to_timestamp(col("timestamp"), "yyyy-MM-dd'T'HH:mm:ss"))
 
 @pytest.fixture
 def boundary_test_data(spark: SparkSession) -> DataFrame:

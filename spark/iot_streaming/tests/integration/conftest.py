@@ -1,9 +1,27 @@
 import pytest
+import json
 from pyspark.sql import SparkSession, Row, DataFrame
 from pyspark.sql.types import *
 from datetime import datetime
-import json
-from typing import List
+from typing import List, Generator
+
+@pytest.fixture(scope="session")
+def spark_session() -> Generator[SparkSession, None, None]:
+    """Session-scoped Spark fixture with test-optimized config."""
+    spark = (SparkSession.builder
+        .master("local[1]")
+        .config("spark.sql.shuffle.partitions", "1")
+        .config("spark.driver.host", "localhost")
+        .config("spark.sql.streaming.schemaInference", "true")
+        .config("spark.ui.enabled", "false")
+        .getOrCreate())
+    yield spark
+    spark.stop()
+
+@pytest.fixture
+def spark(spark_session: SparkSession) -> SparkSession:
+    """Function-scoped Spark session (no teardown - uses session-scoped one)."""
+    return spark_session
 
 def _create_kafka_test_schema() -> StructType:
     """Private helper for Kafka stream schema."""
@@ -17,12 +35,10 @@ def _create_kafka_test_schema() -> StructType:
         StructField("timestampType", IntegerType())
     ])
 
-def _create_mock_kafka_stream(
-    spark: SparkSession,
-    json_messages: List[str]
-) -> DataFrame:
-    """Private helper to create streaming DataFrames."""
+def _create_mock_kafka_stream(spark: SparkSession, json_messages: List[str]) -> DataFrame:
+    """Creates a streaming DataFrame from test messages."""
     schema = _create_kafka_test_schema()
+    
     rows = [Row(
         key=None,
         value=msg.encode('utf-8'),
@@ -31,11 +47,16 @@ def _create_mock_kafka_stream(
         offset=i,
         timestamp=datetime.strptime(
             json.loads(msg)["timestamp"], 
-            "%Y-%m-%dT%H:%M.%fZ"
+            "%Y-%m-%dT%H:%M:%S.%fZ"
         ),
         timestampType=0
     ) for i, msg in enumerate(json_messages)]
-    return spark.createDataFrame(rows, schema)
+    
+    test_data_path = "/tmp/spark_test_stream"
+    df = spark.createDataFrame(rows, schema)
+    df.write.mode("overwrite").parquet(test_data_path)
+    
+    return spark.readStream.schema(schema).parquet(test_data_path)
 
 @pytest.fixture
 def kafka_test_stream(spark: SparkSession) -> DataFrame:
@@ -60,3 +81,10 @@ def kafka_test_stream(spark: SparkSession) -> DataFrame:
 def empty_kafka_test_stream(spark: SparkSession) -> DataFrame:
     """Edge case: Empty stream."""
     return _create_mock_kafka_stream(spark, [])
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_files(spark: SparkSession) -> Generator:
+    """Cleans up test files after all tests complete."""
+    yield
+    import shutil
+    shutil.rmtree("/tmp/spark_test_stream", ignore_errors=True)
