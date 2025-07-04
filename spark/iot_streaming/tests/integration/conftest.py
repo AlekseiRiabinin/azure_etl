@@ -82,7 +82,7 @@ def empty_kafka_test_stream(spark: SparkSession) -> DataFrame:
     """Edge case: Empty stream."""
     return _create_mock_kafka_stream(spark, [])
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function")
 def cleanup_test_files(spark: SparkSession) -> Generator:
     """Cleans up test files after all tests complete."""
     yield
