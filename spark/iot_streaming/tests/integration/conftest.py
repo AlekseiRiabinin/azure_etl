@@ -5,24 +5,6 @@ from pyspark.sql.types import *
 from datetime import datetime
 from typing import List, Generator
 
-@pytest.fixture(scope="session")
-def spark_session() -> Generator[SparkSession, None, None]:
-    """Session-scoped Spark fixture with test-optimized config."""
-    spark = (SparkSession.builder
-        .master("local[1]")
-        .config("spark.sql.shuffle.partitions", "1")
-        .config("spark.driver.host", "localhost")
-        .config("spark.sql.streaming.schemaInference", "true")
-        .config("spark.ui.enabled", "false")
-        .getOrCreate())
-    yield spark
-    spark.stop()
-
-@pytest.fixture
-def spark(spark_session: SparkSession) -> SparkSession:
-    """Function-scoped Spark session (no teardown - uses session-scoped one)."""
-    return spark_session
-
 def _create_kafka_test_schema() -> StructType:
     """Private helper for Kafka stream schema."""
     return StructType([

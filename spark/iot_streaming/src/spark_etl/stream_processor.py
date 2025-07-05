@@ -14,12 +14,11 @@ def process_kafka_stream(df: DataFrame) -> DataFrame:
         .selectExpr("CAST(value AS STRING) as json")
         .selectExpr("json_tuple(json, 'meter_id', 'voltage', 'timestamp') as (meter_id, voltage, timestamp)"))
 
-def write_to_minio(df: DataFrame, minio_path: str) -> None:
+def write_to_minio(df: DataFrame, minio_path: str) -> DataFrame:
     """Write (append) data to S3/MinIO."""
-    (
-        df.writeStream
-            .format("delta")
-            .outputMode("append")
-            .option("checkpointLocation", f"{minio_path}/_checkpoints")
-            .start(minio_path)
-    )
+    return (df
+        .writeStream
+        .format("delta")
+        .outputMode("append")
+        .option("checkpointLocation", f"{minio_path}/_checkpoints")
+        .start(minio_path))

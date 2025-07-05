@@ -1,30 +1,57 @@
 import pytest
 import os
 from tempfile import TemporaryDirectory
-from pyspark.sql import DataFrame
-from your_module import write_to_minio
+from pyspark.sql import SparkSession, DataFrame
+from spark.iot_streaming.src.spark_etl.stream_processor import write_to_minio
 
-@pytest.mark.integration
-def test_write_to_minio_integration(spark, batch_test_data):
-    """Integration test for MinIO write functionality."""
+def test_writing_to_minio_as_integration(
+    spark: SparkSession,
+    kafka_test_stream: DataFrame
+) -> None:
+    """Integration test for MinIO (mocked via file system) write functionality."""
+
     with TemporaryDirectory() as tmpdir:
-        # Create a streaming DF from static data
-        stream_df = spark.createDataFrame(
-            batch_test_data.rdd,
-            schema=batch_test_data.schema
-        ).writeStream.format("memory").queryName("test_stream").start()
-        
-        # Write to temporary directory (mocking MinIO)
         minio_path = f"file://{tmpdir}/output"
-        write_query = write_to_minio(stream_df, minio_path)
-        write_query.awaitTermination(10)  # Wait briefly for processing
-        
-        # Verify output
+
+        write_query = write_to_minio(kafka_test_stream, minio_path)
+
+        write_query.processAllAvailable()
+        write_query.stop()
+
         written_df = spark.read.format("delta").load(minio_path)
-        assert written_df.count() == batch_test_data.count()
-        assert set(row["meter_id"] for row in written_df.collect()) == {
-            "DUNEDIN_222", "HAMILTON_337", "AUCKLAND_218"
-        }
-        
-        # Verify checkpoint was created
+
+        expected_ids = {"HAMILTON_337", "AUCKLAND_218"}
+        result_ids = {row["meter_id"] for row in written_df.collect()}
+
+        assert result_ids == expected_ids
+        assert written_df.count() == 2
         assert os.path.exists(f"{tmpdir}/output/_checkpoints")
+
+# def test_writing_to_minio_with_empty_stream(empty_kafka_test_stream: DataFrame) -> None:
+#     """Test writing to Minio/S3 an empty stream."""
+
+#     with TemporaryDirectory() as tmpdir:
+#         minio_path = f"file://{tmpdir}/output"
+#         write_query = write_to_minio(empty_kafka_test_stream, minio_path)
+#         write_query.processAllAvailable()
+#         write_query.stop()
+
+#         assert not os.path.exists(f"{tmpdir}/output/_delta_log")
+
+# def test_write_to_minio_with_mock_kafka(
+#         spark: SparkSession,
+#         kafka_test_stream: DataFrame
+# ) -> None:
+#     """Integration test for MinIO (local file system) write functionality."""
+
+#     with TemporaryDirectory() as tmpdir:
+#         minio_path = f"file://{tmpdir}/output"
+#         write_query = write_to_minio(kafka_test_stream, minio_path)
+#         write_query.processAllAvailable()
+#         write_query.stop()
+
+#         df = spark.read.format("delta").load(minio_path)
+#         assert df.count() == 2
+#         assert set(df.columns) == {
+#             "key", "value", "topic", "partition", "offset", "timestamp", "timestampType"
+#         }

@@ -7,13 +7,21 @@ from typing import Generator
 @pytest.fixture(scope="session")
 def spark_session() -> Generator[SparkSession, None, None]:
     """Session-scoped Spark fixture with test-optimized config."""
+
     spark = (SparkSession.builder
         .master("local[1]")
         .config("spark.sql.shuffle.partitions", "1")
         .config("spark.driver.host", "localhost")
         .config("spark.sql.streaming.schemaInference", "true")
         .config("spark.ui.enabled", "false")
+        .config("spark.jars", ",".join([
+            "/home/aleksei/jars/delta-core_2.12-2.4.0.jar",
+            "/home/aleksei/jars/delta-storage-2.4.0.jar"
+        ]))
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
         .getOrCreate())
+
     yield spark
     spark.stop()
 
