@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, when, lit
 
 def detect_anomalies(df: DataFrame) -> DataFrame:
@@ -10,14 +10,16 @@ def detect_anomalies(df: DataFrame) -> DataFrame:
 
 def process_kafka_stream(df: DataFrame) -> DataFrame:
     """Read from Kafka and parse JSON payload."""
-    return df \
-        .selectExpr("CAST(value AS STRING) as json") \
-        .selectExpr("json_tuple(json, 'meter_id', 'voltage', 'timestamp') as (meter_id, voltage, timestamp)")
+    return (df
+        .selectExpr("CAST(value AS STRING) as json")
+        .selectExpr("json_tuple(json, 'meter_id', 'voltage', 'timestamp') as (meter_id, voltage, timestamp)"))
 
 def write_to_minio(df: DataFrame, minio_path: str) -> None:
     """Write (append) data to S3/MinIO."""
-    df.writeStream \
-        .format("delta") \
-        .outputMode("append") \
-        .option("checkpointLocation", f"{minio_path}/_checkpoints") \
-        .start(minio_path)
+    (
+        df.writeStream
+            .format("delta")
+            .outputMode("append")
+            .option("checkpointLocation", f"{minio_path}/_checkpoints")
+            .start(minio_path)
+    )

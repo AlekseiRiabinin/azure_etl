@@ -82,9 +82,9 @@ def empty_kafka_test_stream(spark: SparkSession) -> DataFrame:
     """Edge case: Empty stream."""
     return _create_mock_kafka_stream(spark, [])
 
-@pytest.fixture(scope="function")
-def cleanup_test_files(spark: SparkSession) -> Generator:
-    """Cleans up test files after all tests complete."""
+@pytest.fixture
+def cleanup_test_files() -> Generator[None, None, None]:
+    """Cleans up test files after each test completes."""
     yield
     import shutil
     shutil.rmtree("/tmp/spark_test_stream", ignore_errors=True)
