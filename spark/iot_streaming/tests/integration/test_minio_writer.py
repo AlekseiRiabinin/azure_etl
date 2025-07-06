@@ -1,16 +1,13 @@
 import os
 from tempfile import TemporaryDirectory
+from delta.tables import DeltaTable
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import *
 from spark.iot_streaming.src.spark_etl.stream_processor import write_to_minio
 
-def test_writing_to_minio_as_integration(
-    spark: SparkSession,
-    kafka_test_stream: DataFrame
-) -> None:
-    """Integration test for MinIO (mocked via file system) write functionality."""
-
+def parse_iot_kafka_stream(kafka_stream: DataFrame) -> DataFrame:
+    """Parse raw Kafka JSON messages into structured IoT data."""
     iot_schema = StructType([
         StructField("meter_id", StringType(), nullable=False),
         StructField("kwh_usage", DoubleType(), nullable=False),
@@ -18,15 +15,23 @@ def test_writing_to_minio_as_integration(
         StructField("timestamp", TimestampType(), nullable=False)
     ])
 
-    parsed_stream = (kafka_test_stream
-        .selectExpr("CAST(value AS STRING) AS json_str")
+    return (kafka_stream
+        .selectExpr("CAST(value AS STRING) as json_str")
         .select(from_json(col("json_str"), iot_schema).alias("data"))
         .select("data.*"))
+
+def test_writing_to_minio_as_integration(
+    spark: SparkSession,
+    kafka_test_stream: DataFrame
+) -> None:
+    """Integration test for MinIO (mocked via file system) write functionality."""
+    parsed_stream = parse_iot_kafka_stream(kafka_test_stream)
 
     with TemporaryDirectory() as tmpdir:
         minio_path = f"file://{tmpdir}/output"
 
         write_query = write_to_minio(parsed_stream, minio_path)
+
         write_query.processAllAvailable()
         write_query.stop()
 
@@ -39,31 +44,23 @@ def test_writing_to_minio_as_integration(
         assert written_df.count() == 2
         assert os.path.exists(f"{tmpdir}/output/_checkpoints")
 
-# def test_writing_to_minio_with_empty_stream(empty_kafka_test_stream: DataFrame) -> None:
-#     """Test writing to Minio/S3 an empty stream."""
+def test_writing_to_minio_with_empty_stream(
+    spark: SparkSession,
+    empty_kafka_test_stream: DataFrame
+) -> None:
+    """Test writing to Minio/S3 an empty stream."""
+    parsed_stream = parse_iot_kafka_stream(empty_kafka_test_stream)
 
-#     with TemporaryDirectory() as tmpdir:
-#         minio_path = f"file://{tmpdir}/output"
-#         write_query = write_to_minio(empty_kafka_test_stream, minio_path)
-#         write_query.processAllAvailable()
-#         write_query.stop()
+    with TemporaryDirectory() as tmpdir:
+        minio_path = f"file://{tmpdir}/output"
 
-#         assert not os.path.exists(f"{tmpdir}/output/_delta_log")
+        write_query = write_to_minio(parsed_stream, minio_path)
 
-# def test_write_to_minio_with_mock_kafka(
-#         spark: SparkSession,
-#         kafka_test_stream: DataFrame
-# ) -> None:
-#     """Integration test for MinIO (local file system) write functionality."""
+        write_query.processAllAvailable()
+        write_query.stop()
 
-#     with TemporaryDirectory() as tmpdir:
-#         minio_path = f"file://{tmpdir}/output"
-#         write_query = write_to_minio(kafka_test_stream, minio_path)
-#         write_query.processAllAvailable()
-#         write_query.stop()
+        assert os.path.exists(f"{tmpdir}/output/_delta_log"), "Delta log was not created"
 
-#         df = spark.read.format("delta").load(minio_path)
-#         assert df.count() == 2
-#         assert set(df.columns) == {
-#             "key", "value", "topic", "partition", "offset", "timestamp", "timestampType"
-#         }
+        dt = DeltaTable.forPath(spark, minio_path)
+        count = dt.toDF().count()
+        assert count == 0, f"Expected 0 records in Delta table, found {count}"

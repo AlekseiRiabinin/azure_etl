@@ -17,8 +17,7 @@ def spark_session() -> Generator[SparkSession, None, None]:
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-        .getOrCreate()
-    )
+        .getOrCreate())
     yield spark
     spark.stop()
 
