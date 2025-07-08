@@ -258,7 +258,10 @@ services:
 
   # JupyterLab with PySpark (Databricks alternative)
   jupyterlab:
-    image: jupyter/pyspark-notebook:spark-3.5.0
+    image: alexflames77/custom-jupyterlab:latest
+    build:
+      context: .
+      dockerfile: jupyterlab/Dockerfile
     container_name: jupyterlab
     ports:
       - "8888:8888"
@@ -274,18 +277,7 @@ services:
       - kafka-net
     restart: always
     user: root
-    command: >
-      bash -c "
-      mkdir -p /home/jovyan/.cache/pip /home/jovyan/.local &&
-      pip install --user --cache-dir /home/jovyan/.cache/pip \
-      apache-airflow==2.9.1 \
-      apache-airflow-providers-apache-spark \
-      apache-airflow-providers-apache-kafka \
-      apache-airflow-providers-amazon \
-      --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt &&
-      chown -R jovyan:users /home/jovyan &&
-      start-notebook.sh
-      "
+    command: start-notebook.sh
     deploy:
       resources:
         limits:
