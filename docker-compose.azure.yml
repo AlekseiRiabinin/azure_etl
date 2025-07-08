@@ -265,11 +265,27 @@ services:
     environment:
       - JUPYTER_TOKEN=admin
       - JUPYTER_ENABLE_LAB=yes
+      - PIP_CACHE_DIR=/home/jovyan/.cache/pip
     volumes:
       - ./notebooks:/home/jovyan/work
+      - ./airflow/dags:/home/jovyan/work/dags
+      - jupyter-pip-cache:/home/jovyan/.cache/pip
     networks:
       - kafka-net
     restart: always
+    user: root
+    command: >
+      bash -c "
+      mkdir -p /home/jovyan/.cache/pip /home/jovyan/.local &&
+      pip install --user --cache-dir /home/jovyan/.cache/pip \
+      apache-airflow==2.9.1 \
+      apache-airflow-providers-apache-spark \
+      apache-airflow-providers-apache-kafka \
+      apache-airflow-providers-amazon \
+      --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt &&
+      chown -R jovyan:users /home/jovyan &&
+      start-notebook.sh
+      "
     deploy:
       resources:
         limits:
@@ -456,6 +472,8 @@ volumes:
     name: postgres-azure-data
   minio-data:
     name: minio-data
+  jupyter-pip-cache:
+    name: jupyter-pip-cache
 
 # docker compose -f docker-compose.etl.yml up airflow-init
 
