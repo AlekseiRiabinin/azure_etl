@@ -269,6 +269,13 @@ services:
       - JUPYTER_TOKEN=admin
       - JUPYTER_ENABLE_LAB=yes
       - PIP_CACHE_DIR=/home/jovyan/.cache/pip
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
     volumes:
       - ./notebooks:/home/jovyan/work
       - ./airflow/dags:/home/jovyan/work/dags
@@ -276,7 +283,6 @@ services:
     networks:
       - kafka-net
     restart: always
-    user: root
     command: start-notebook.sh
     deploy:
       resources:
@@ -335,9 +341,9 @@ services:
     ports:
       - "8090:8080"  # Trino UI
     volumes:
-      - ./trino/etc:/etc/trino:ro  # Mount config files
+      - ./trino/etc:/etc/trino:ro                  # Mount config files
       - ./trino/etc/catalog:/etc/trino/catalog:ro
-      - ./trino/etc/kafka:/etc/trino/kafka:ro  # For schema files
+      - ./trino/etc/kafka:/etc/trino/kafka:ro      # For schema files
       - ./trino/data:/var/trino/data
       - ./hadoop-conf:/opt/hadoop/etc/hadoop
       - ./hive-conf:/opt/hive/conf
