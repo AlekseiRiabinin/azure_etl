@@ -25,3 +25,5 @@ RUN pip install --no-cache-dir \
     jupyterlab-git \
     jupyterlab-dash \
     --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt
+
+RUN jupyter lab build
