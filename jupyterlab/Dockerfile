@@ -26,4 +26,9 @@ RUN pip install --no-cache-dir \
     jupyterlab-dash \
     --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt
 
+RUN pip install --no-cache-dir \
+    ipython \
+    matplotlib \
+    seaborn
+
 RUN jupyter lab build
