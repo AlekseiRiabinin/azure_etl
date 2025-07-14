@@ -265,10 +265,17 @@ services:
     container_name: jupyterlab
     ports:
       - "8888:8888"
+      - "4040:4040"
+      - "4041:4041" 
     environment:
       - JUPYTER_TOKEN=admin
       - JUPYTER_ENABLE_LAB=yes
       - PIP_CACHE_DIR=/home/jovyan/.cache/pip
+      - SPARK_DRIVER_MEMORY=2g
+      - SPARK_UI_PORT=4040
+      - SPARK_LOCAL_IP=jupyterlab
+      - PYSPARK_PYTHON=python3
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092,kafka-2:9095
       - POSTGRES_HOST=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -276,18 +283,23 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - SPARK_LOG_LEVEL=WARN
+      - KAFKA_LOG_LEVEL=ERROR
     volumes:
       - ./notebooks:/home/jovyan/work
       - ./airflow/dags:/home/jovyan/work/dags
       - jupyter-pip-cache:/home/jovyan/.cache/pip
+      - spark-ivy-cache:/home/jovyan/.ivy2
     networks:
       - kafka-net
-    restart: always
+    restart: unless-stopped
     command: start-notebook.sh
     deploy:
       resources:
         limits:
-          cpus: '1.5'
+          cpus: '2.0'
+          memory: 6GiB
+        reservations:
           memory: 4GiB
 
   # Kafdrop (Kafka UI)
@@ -472,6 +484,8 @@ volumes:
     name: minio-data
   jupyter-pip-cache:
     name: jupyter-pip-cache
+  spark-ivy-cache:
+    name: spark-ivy-cache
 
 # docker compose -f docker-compose.etl.yml up airflow-init
 
