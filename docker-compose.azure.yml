@@ -151,7 +151,7 @@ services:
       - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
       - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
       - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
-      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9002
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -183,7 +183,7 @@ services:
       - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
       - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
       - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
-      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9002
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -219,7 +219,7 @@ services:
       - AIRFLOW_CONN_HDFS_DEFAULT=hdfs://namenode:8020
       - AIRFLOW_CONN_KAFKA_DEFAULT=kafka://kafka-1:9092,kafka-2:9095
       - AIRFLOW_CONN_SPARK_DEFAULT=spark://spark-master:7077
-      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9000
+      - AIRFLOW_CONN_MINIO_DEFAULT=s3://minioadmin:minioadmin@minio:9002
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -280,7 +280,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
-      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ENDPOINT=minio:9002
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - SPARK_LOG_LEVEL=WARN
@@ -307,7 +307,7 @@ services:
     image: obsidiandynamics/kafdrop:3.30.0
     container_name: kafdrop
     ports:
-      - "9002:9000"
+      - "9003:9000"
     environment:
       - KAFKA_BROKERCONNECT=kafka-1:9092,kafka-2:9095
     depends_on:
@@ -417,7 +417,7 @@ services:
       - METASTORE_STARTUP_DELAY=30
       - HIVE_CONF_DIR=/opt/hive/conf
       - HIVE_AUX_JARS_PATH=/opt/hive/lib
-      - HIVE_METASTORE_HADOOP_OPTS=-Dfs.defaultFS=s3a://default -Dfs.s3a.endpoint=http://minio:9000
+      - HIVE_METASTORE_HADOOP_OPTS=-Dfs.defaultFS=s3a://default -Dfs.s3a.endpoint=http://minio:9002
       - HIVE_METASTORE_DB_TYPE=postgres
       - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
       - HADOOP_HOME=/opt/hadoop
@@ -457,13 +457,13 @@ services:
       - MINIO_ROOT_PASSWORD=minioadmin
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
-      - AWS_ENDPOINT_URL=http://minio:9000
-    command: server /data --console-address ":9001"
+      - AWS_ENDPOINT_URL=http://minio:9002
+    command: server /data --console-address ":9001" --address ":9002"
     volumes:
       - minio-data:/data
     ports:
-      - "9000:9000"    # Console
-      - "9001:9001"    # API
+      - "9002:9002"    # API
+      - "9001:9001"    # Console
     networks:
       - kafka-net
     restart: always

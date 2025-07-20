@@ -115,14 +115,14 @@ fi
 log "📦 Ensuring 'default' bucket exists in MinIO..."
 
 set +e  # Temporarily disable exit-on-error
-docker run --rm --network azure_etl_kafka-net minio/mc mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1
+docker run --rm --network azure_etl_kafka-net minio/mc mc alias set local http://minio:9002 minioadmin minioadmin >/dev/null 2>&1
 BUCKET_EXISTS=$(docker run --rm --network azure_etl_kafka-net minio/mc mc ls local 2>/dev/null | grep -c 'default')
 set -e  # Re-enable strict mode
 
 if [ "$BUCKET_EXISTS" -eq 0 ]; then
   log "🪣  Creating MinIO bucket: 'default'"
   docker run --rm --network azure_etl_kafka-net minio/mc \
-    mc alias set local http://minio:9000 minioadmin minioadmin && \
+    mc alias set local http://minio:9002 minioadmin minioadmin && \
     docker run --rm --network azure_etl_kafka-net minio/mc \
       mc mb local/default
 else
