@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import Mock
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from spark.iot_streaming.src.spark_etl.stream_processor import write_to_minio
+
 
 def test_writing_to_minio_config() -> None:
     """Test configuration without execution."""
@@ -27,6 +28,7 @@ def test_writing_to_minio_config() -> None:
     mock_writer.start.assert_called_once_with(test_path)
     assert result == mock_query
 
+
 def test_writing_to_minio_called_with_correct_path() -> None:
     """Ensure correct S3 path is passed to start()."""
     mock_writer = Mock()
@@ -43,6 +45,7 @@ def test_writing_to_minio_called_with_correct_path() -> None:
     write_to_minio(mock_df, path)
 
     mock_writer.start.assert_called_once_with(path)
+
 
 def test_writing_to_minio_multiple_calls() -> None:
     """Ensure method chain is correctly called even if invoked multiple times."""
@@ -63,6 +66,7 @@ def test_writing_to_minio_multiple_calls() -> None:
         result = write_to_minio(mock_df, path)
         assert result == mock_query
 
+
 def test_writing_to_minio_handles_invalid_path_gracefully() -> None:
     """Simulate failure when invalid path is passed to .start()."""
     mock_writer = Mock()
@@ -77,3 +81,24 @@ def test_writing_to_minio_handles_invalid_path_gracefully() -> None:
 
     with pytest.raises(Exception, match="Invalid path"):
         write_to_minio(mock_df, "invalid_path")
+
+
+def test_write_to_minio(parsed_df: DataFrame, tmp_path, mocker, spark: SparkSession) -> bool:
+    """Test MinIO write function."""    
+    # Create a test DataFrame with a few rows
+    test_df = parsed_df.limit(2)
+    
+    # Test with empty DataFrame
+    empty_df = spark.createDataFrame([], parsed_df.schema)
+    write_to_minio(empty_df, 0)
+    
+    # Test with valid data
+    output_path = f"file://{tmp_path}/minio_test/"
+    mocker.patch("test_smart_meter_etl.write_to_minio", 
+                side_effect=lambda df, batch_id: df.write.parquet(output_path))
+
+    write_to_minio(test_df, 1)
+    
+    # Verify data was written
+    written_df = spark.read.parquet(output_path)
+    assert written_df.count() == 2

@@ -3,6 +3,7 @@ from pyspark.sql import SparkSession, Row, DataFrame
 from pyspark.sql.types import *
 from spark.iot_streaming.src.spark_etl.stream_processor import detect_anomalies
 
+
 @pytest.mark.parametrize("voltage,expected", [
     (240, False),  # Normal
     (250, False),  # Boundary
@@ -21,6 +22,7 @@ def test_anomaly_threshold(
     result = detect_anomalies(test_df).first()
     assert result["is_anomaly"] == expected
 
+
 def test_detect_anomalies_identifies_high_voltage(batch_test_data: DataFrame) -> None:
     """Test that high voltage (>250) records are flagged as anomalies."""
     result = detect_anomalies(batch_test_data)
@@ -32,6 +34,7 @@ def test_detect_anomalies_identifies_high_voltage(batch_test_data: DataFrame) ->
     assert len(anomalies) == 1
     assert anomalies[0]["meter_id"] == "HAMILTON_337"
     assert anomalies[0]["voltage"] == 260
+
 
 def test_detect_anomalies_preserves_normal_records(batch_test_data: DataFrame) -> None:
     """Test that normal voltage records are not flagged."""
@@ -45,6 +48,7 @@ def test_detect_anomalies_preserves_normal_records(batch_test_data: DataFrame) -
     assert len(records) == 2
     assert record_ids == {"DUNEDIN_222", "AUCKLAND_218"}
     assert all(row["voltage"] <= 250 for row in records)
+
 
 def test_empty_dataframe(spark_session: SparkSession, batch_test_data: DataFrame) -> None:
     """Verify function handles empty input gracefully."""
