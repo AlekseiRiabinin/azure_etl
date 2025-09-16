@@ -37,9 +37,9 @@
 
   <property>
     <name>fs.s3a.endpoint</name>
-    <value>http://minio:9000</value>
+    <value>http://minio:9002</value>
     <description>
-      MinIO server endpoint URL. Uses Docker service name 'minio' and default port 9000.
+      MinIO server endpoint URL. Uses Docker service name 'minio' and default port 9002.
       For HTTPS, change protocol to https:// and enable SSL below.
     </description>
   </property>
@@ -84,7 +84,7 @@
     <value>100</value>
     <description>
       Maximum number of simultaneous connections to MinIO.
-      Adjust based on your workload and MinIO server capacity.
+      Adjust based on the workload and MinIO server capacity.
     </description>
   </property>
 
@@ -143,7 +143,7 @@
     <value>60000</value>
     <description>
       Connection timeout in milliseconds (60 seconds).
-      Adjust based on your network latency characteristics.
+      Adjust based on the network latency characteristics.
     </description>
   </property>
 

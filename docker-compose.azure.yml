@@ -333,9 +333,28 @@ services:
       - ./duckdb:/duckdb    # Local folder for DuckDB files
       - ./data:/data        # For input Parquet/CSV files
     working_dir: /duckdb
-    command: bash -c "pip install duckdb pandas pyarrow && tail -f /dev/null"
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_ENDPOINT_URL=http://minio:9002
+      - AWS_REGION=us-east-1
+      - AWS_S3_ALLOW_UNSIGNED=true
+      - MINIO_ENDPOINT=minio:9002
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    command: >
+      bash -c "
+      echo 'Installing packages...' &&
+      pip install duckdb pandas pyarrow s3fs boto3 fastparquet &&
+      echo 'Initializing DuckDB database...' &&
+      python /duckdb/init_duckdb.py &&
+      echo 'DuckDB ready! Keeping container alive...' &&
+      tail -f /dev/null
+      "
     networks:
-      - kafka-net
+      kafka-net:
+        aliases:
+          - duckdb-service
     restart: always
     deploy:
       resources:
@@ -417,7 +436,6 @@ services:
       - METASTORE_STARTUP_DELAY=30
       - HIVE_CONF_DIR=/opt/hive/conf
       - HIVE_AUX_JARS_PATH=/opt/hive/lib
-      - HIVE_METASTORE_HADOOP_OPTS=-Dfs.defaultFS=s3a://default -Dfs.s3a.endpoint=http://minio:9002
       - HIVE_METASTORE_DB_TYPE=postgres
       - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
       - HADOOP_HOME=/opt/hadoop

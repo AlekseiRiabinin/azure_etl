@@ -50,5 +50,18 @@ for ((i=1; i<=$MAX_RETRIES; i++)); do
   fi
 done
 
+# Schema upgrade check
+echo "Checking if schema upgrade is needed..."
+if schematool -dbType "$DB_TYPE" -info | grep -q "version 3.1.0"; then
+    echo "Upgrading schema from 3.1.0 to 3.1.3..."
+    if schematool -dbType "$DB_TYPE" -upgradeSchema; then
+        echo "Schema upgrade completed successfully."
+    else
+        echo "[WARNING] Schema upgrade failed. Continuing with existing schema..."
+    fi
+else
+    echo "Schema is already at the correct version (3.1.3)."
+fi
+
 echo "Starting Hive Metastore..."
 exec hive --service metastore "$@"

@@ -88,10 +88,10 @@
     <value>9083</value>
   </property>
 
-  <property>
+  <!-- <property>
     <name>hive.metastore.bind.host</name>
     <value>0.0.0.0</value>
-  </property>
+  </property> -->
 
   <!-- Temporary/scratch directory (using MinIO/S3) -->
   <property>
@@ -128,7 +128,7 @@
 
   <property>
     <name>datanucleus.autoStartMechanismMode</name>
-    <value>checked</value>
+    <value>ignored</value>
   </property>
 
 </configuration>
