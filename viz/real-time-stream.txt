@@ -1,0 +1,19 @@
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌────────────────┐
+│   DATA SOURCE   │───▶│  KAFKA PRODUCER  │───▶│  KAFKA BROKERS  │───▶│     TRINO      │
+│                 │    │                  │    │                 │    │                │
+│ • smart_meter_  │    │ • Python Script  │    │ • kafka-1:9092  │    │ • Coordinator  │
+│   data.py       │    │ • Generates fake │    │ • kafka-2:9095  │    │ • Workers      │
+│ • Generates     │    │   meter data     │    │ • Topics:       │    │ • Kafka        │
+│   synthetic data│    │ • JSON messages  │    │   - smart_meter_│    │   Connector    │
+└─────────────────┘    └──────────────────┘    │     data        │    └────────────────┘
+                                               │ • Partitions    │            │
+                                               │ • Replication   │            │
+                                               └─────────────────┘            │
+                                                                                                                                      ▼
+                                                                     ┌────────────────┐
+                                                                     │    DBEAVER     │
+                                                                     │                │
+                                                                     │ • SQL Client   │
+                                                                     │ • Visualize    │
+                                                                     │ • Monitor      │
+                                                                     └────────────────┘

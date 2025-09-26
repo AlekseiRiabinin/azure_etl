@@ -1,0 +1,24 @@
+┌─────────────────────────────────────────────────┐
+│                 TRINO COORDINATOR               │
+├─────────────────────────────────────────────────┤
+│ Kafka Connector Configuration:                  │
+│ • kafka.nodes=kafka-1:9092,kafka-2:9095        │
+│ • kafka.table-names=smart_meter_data           │
+│ • kafka.hide-internal-columns=false            │
+│                                                 │
+│ SQL Query:                                      │
+│ SELECT region, AVG(kwh_usage)                   │
+│ FROM kafka.default.smart_meter_data            │
+│ GROUP BY region                                 │
+└─────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────┐
+│                 KAFKA CONSUMER                  │
+├─────────────────────────────────────────────────┤
+│ • Reads from all partitions                     │
+│ • Maintains offset position                     │
+│ • Converts JSON to relational columns           │
+│ • Provides metadata columns:                    │
+│   - _partition_id, _offset, _timestamp         │
+└─────────────────────────────────────────────────┘

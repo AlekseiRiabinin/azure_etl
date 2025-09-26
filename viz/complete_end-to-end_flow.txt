@@ -1,0 +1,17 @@
+┌───────┐    ┌───────────┐    ┌───────────┐    ┌──────────┐    ┌─────────┐
+│ Data  │───▶│ Producer  │───▶│ Kafka     │───▶│ Trino    │───▶│ DBeaver │
+│ Gen   │    │ (Python)  │    │ Brokers   │    │ Connector│    │  SQL    │
+└───────┘    └───────────┘    └───────────┘    └──────────┘    └─────────┘
+    │              │                 │                 │             │
+    │ JSON         │ JSON            │ Binary          │ SQL         │ Results
+    │ Records      │ Messages        │ Messages        │ Results     │ Tables/Charts
+    ▼              ▼                 ▼                 ▼             ▼
+┌────────────┐ ┌────────────┐   ┌────────────┐   ┌────────────┐ ┌────────────┐
+│{           │ │{           │   │ Topic:     │   │region |avg │ │Auckland|2.3│
+│ "meter_id":│ │ "meter_id":│   │ smart_meter│   │Wellington|1.8│ │Wellington│
+│ "AUC_123", │ │ "AUC_123", │   │ _data      │   │Christch|2.1 │ │    |1.8   │
+│ "kwh":2.5, │ │ "kwh":2.5, │   │ Part0:     │   └────────────┘ └────────────┘
+│ "voltage": │ │ "voltage": │   │ [messages] │
+│ 230        │ │ 230        │   │ Part1:     │
+│}           │ │}           │   │ [messages] │
+└────────────┘ └────────────┘   └────────────┘

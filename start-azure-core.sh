@@ -18,8 +18,8 @@ log() {
 }
 
 # Step 0: Start MinIO FIRST and create bucket BEFORE other services
-log "🔧 Starting MinIO first..."
-docker compose -f $COMPOSE_FILE up -d minio
+log "🔧 Starting MinIO and setup service..."
+docker compose -f $COMPOSE_FILE up -d minio minio-setup
 
 # Give MinIO some time to start
 log "⏳ Giving MinIO time to initialize..."

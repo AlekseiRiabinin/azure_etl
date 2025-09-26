@@ -1,0 +1,28 @@
+┌─────────────────────────────────────────────────┐
+│            smart_meter_data.py                  │
+├─────────────────────────────────────────────────┤
+│ def generate_meter_data():                      │
+│   - Creates JSON records with:                  │
+│     • meter_id: "AUCKLAND_123"                  │
+│     • timestamp: "2024-01-15T10:30:00Z"         │
+│     • kwh_usage: 3.45                           │
+│     • voltage: 230                              │
+│     • customer_id: "CUST_5678"                  │
+│     • region: "Auckland"                        │
+└─────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────┐
+│            kafka_producer.py                    │
+├─────────────────────────────────────────────────┤
+│ producer = KafkaProducer(                       │
+│   bootstrap_servers=['kafka-1:9092',           │
+│                      'kafka-2:9095'])          │
+│                                                 │
+│ while True:                                     │
+│   data = generate_meter_data(100)              │
+│   for record in data:                          │
+│     producer.send('smart_meter_data', record)  │
+│   producer.flush()                             │
+│   time.sleep(10)                               │
+└─────────────────────────────────────────────────┘
