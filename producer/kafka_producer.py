@@ -6,10 +6,17 @@ import random
 import logging
 import os
 
-# Constants
-BOOTSTRAP_SERVERS = ['kafka-1:9092', 'kafka-2:9095']
+
+DEFAULT_BOOTSTRAP_SERVERS = ['kafka-1:9092', 'kafka-2:9095']
 TOPIC = 'smart_meter_data'
 DATA_PATH = "/app/data/smart_meter_data.json"
+
+# Get bootstrap servers from environment variable if provided, otherwise use defaults
+BOOTSTRAP_SERVERS = (
+    os.getenv('KAFKA_BOOTSTRAP_SERVERS', '').split(',') 
+    if os.getenv('KAFKA_BOOTSTRAP_SERVERS') 
+    else DEFAULT_BOOTSTRAP_SERVERS
+)
 
 # Configure logging
 logging.basicConfig(
@@ -71,6 +78,7 @@ def produce_to_kafka() -> None:
         raise
     finally:
         producer.close() if 'producer' in locals() else None
+
 
 if __name__ == "__main__":
     produce_to_kafka()
