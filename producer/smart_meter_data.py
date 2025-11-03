@@ -5,19 +5,38 @@ from typing import List, Dict
 
 regions = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin"]
 
+
 def generate_meter_data(num_records: int = 1000) -> List[Dict[str, object]]:
     data = []
     for i in range(num_records):
         record = {
             "meter_id": f"{random.choice(regions).upper()}_{random.randint(100, 999)}",
             "timestamp": (datetime.now() - timedelta(minutes=random.randint(0, 1440))).isoformat() + "Z",
-            "kwh_usage": round(random.uniform(0.5, 5.0), 2),
+            "energy_consumption": round(random.uniform(0.5, 5.0), 2),
             "voltage": random.choice([230, 240]),
-            "customer_id": f"CUST_{random.randint(1000, 9999)}",
-            "region": random.choice(regions)
+            "current_reading": round(random.uniform(1.0, 15.0), 2),
+            "power_factor": round(random.uniform(0.85, 0.99), 2),
+            "frequency": round(random.uniform(49.8, 50.2), 2)
         }
         data.append(record)
     return data
+
+
+# OLD SCHEMA!!!
+# def generate_meter_data(num_records: int = 1000) -> List[Dict[str, object]]:
+#     data = []
+#     for i in range(num_records):
+#         record = {
+#             "meter_id": f"{random.choice(regions).upper()}_{random.randint(100, 999)}",
+#             "timestamp": (datetime.now() - timedelta(minutes=random.randint(0, 1440))).isoformat() + "Z",
+#             "kwh_usage": round(random.uniform(0.5, 5.0), 2),
+#             "voltage": random.choice([230, 240]),
+#             "customer_id": f"CUST_{random.randint(1000, 9999)}",
+#             "region": random.choice(regions)
+#         }
+#         data.append(record)
+#     return data
+
 
 if __name__ == "__main__":
     meter_data = generate_meter_data(1000)
