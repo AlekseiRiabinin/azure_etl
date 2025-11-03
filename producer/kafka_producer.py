@@ -9,16 +9,14 @@ import os
 
 DEFAULT_BOOTSTRAP_SERVERS = ['kafka-1:9092', 'kafka-2:9095']
 TOPIC = 'smart_meter_data'
-DATA_PATH = "/app/data/smart_meter_data.json"
 
-# Get bootstrap servers from environment variable if provided, otherwise use defaults
 BOOTSTRAP_SERVERS = (
     os.getenv('KAFKA_BOOTSTRAP_SERVERS', '').split(',') 
     if os.getenv('KAFKA_BOOTSTRAP_SERVERS') 
     else DEFAULT_BOOTSTRAP_SERVERS
 )
 
-# Configure logging
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -26,13 +24,13 @@ logging.basicConfig(
 logger = logging.getLogger('kafka-producer')
 logger.setLevel(logging.DEBUG)
 
-def validate_environment() -> None:
-    """Check required files and connections."""
-    if not os.path.exists(DATA_PATH):
-        logger.error(f"Data file not found at {DATA_PATH}. Verify volume mount!")
-        raise FileNotFoundError(f"Missing data file: {DATA_PATH}")
 
-def create_producer() -> None:
+def validate_environment() -> None:
+    """Check required connections - we generate data dynamically now."""
+    logger.info("Environment validation passed - generating data dynamically")
+
+
+def create_producer() -> KafkaProducer:
     """Create and configure Kafka producer."""
     return KafkaProducer(
         bootstrap_servers=BOOTSTRAP_SERVERS,
@@ -45,8 +43,9 @@ def create_producer() -> None:
         metadata_max_age_ms=30000
     )
 
+
 def produce_to_kafka() -> None:
-    """Send data to Kafka-brokers."""
+    """Send dynamically generated data to Kafka."""
     validate_environment()
     
     try:
@@ -55,29 +54,27 @@ def produce_to_kafka() -> None:
 
         while True:
             try:
-                # Generate and send data
                 meter_data = generate_meter_data(1)[0]
                 future = producer.send(TOPIC, meter_data)
                 
-                # Verify delivery
                 metadata = future.get(timeout=10)
                 logger.debug(
                     f"Produced to {metadata.topic}[{metadata.partition}] "
                     f"at offset {metadata.offset}"
                 )
                 
-                # Throttle production
                 time.sleep(random.uniform(0.1, 1.0))
                 
             except Exception as e:
                 logger.error(f"Production error: {str(e)}", exc_info=True)
-                time.sleep(5)  # Backoff before retry
+                time.sleep(5)
 
     except Exception as e:
         logger.critical(f"Fatal producer error: {str(e)}", exc_info=True)
         raise
     finally:
-        producer.close() if 'producer' in locals() else None
+        if 'producer' in locals():
+            producer.close()
 
 
 if __name__ == "__main__":
