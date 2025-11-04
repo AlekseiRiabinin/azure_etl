@@ -7,15 +7,15 @@ import logging
 import os
 
 
-DEFAULT_BOOTSTRAP_SERVERS = ['kafka-1:9092', 'kafka-2:9095']
+TELECOM_DEFAULT_SERVERS = ['kafka-1:19092', 'kafka-2:19094']
+AZURE_ETL_DEFAULT_SERVERS = ['kafka-1:9092', 'kafka-2:9095']
 TOPIC = 'smart_meter_data'
 
 BOOTSTRAP_SERVERS = (
     os.getenv('KAFKA_BOOTSTRAP_SERVERS', '').split(',') 
     if os.getenv('KAFKA_BOOTSTRAP_SERVERS') 
-    else DEFAULT_BOOTSTRAP_SERVERS
+    else TELECOM_DEFAULT_SERVERS
 )
-
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,7 +26,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def validate_environment() -> None:
-    """Check required connections - we generate data dynamically now."""
+    """Check required connections."""
     logger.info("Environment validation passed - generating data dynamically")
 
 
@@ -51,6 +51,7 @@ def produce_to_kafka() -> None:
     try:
         producer = create_producer()
         logger.info(f"Producer initialized, sending to topic: {TOPIC}")
+        logger.info(f"Using bootstrap servers: {BOOTSTRAP_SERVERS}")
 
         while True:
             try:
